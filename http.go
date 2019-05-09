@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 )
 
 type BasicResponse struct {
@@ -137,4 +138,26 @@ func PostJSON(url string, t interface{}) error {
 		return fmt.Errorf("couldn't parse response: %v", err)
 	}
 	return nil
+}
+
+// DownloadFile will download a url to a local file. It's efficient because it will
+// write as it downloads and not load the whole file into memory.
+func DownloadFile(filepath string, url string) (*os.File, error) {
+
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	out, err := ioutil.TempFile("", filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer out.Close()
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	return out, err
 }
