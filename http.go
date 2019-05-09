@@ -15,22 +15,18 @@ type BasicResponse struct {
 	Message string `json:"message"`
 }
 
-func writeError(w http.ResponseWriter, code int, err error) {
+func WriteError(w http.ResponseWriter, code int, err error) {
 	bodyMap := map[string]interface{}{"error": map[string]interface{}{"message": err.Error()}}
-	writeJSON(w, code, bodyMap)
+	WriteObject(w, code, bodyMap)
 }
 
-func writeJSON(w http.ResponseWriter, code int, obj map[string]interface{}) {
-	writeObject(w, code, obj)
-}
-
-func writeMessage(w http.ResponseWriter, code int, msg string) {
-	writeJSON(w, 200, map[string]interface{}{
+func WriteMessage(w http.ResponseWriter, code int, msg string) {
+	WriteObject(w, 200, map[string]interface{}{
 		"message": msg,
 	})
 }
 
-func writeObject(w http.ResponseWriter, code int, obj interface{}) {
+func WriteObject(w http.ResponseWriter, code int, obj interface{}) {
 	jsonValue, _ := json.Marshal(obj)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
@@ -40,30 +36,30 @@ func writeObject(w http.ResponseWriter, code int, obj interface{}) {
 	}
 }
 
-func parseJSON(w http.ResponseWriter, r *http.Request, t interface{}) error {
-	err := parseJSONReader(r.Body, t)
+func ParseJSON(w http.ResponseWriter, r *http.Request, t interface{}) error {
+	err := ParseJSONReader(r.Body, t)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid request body, bad JSON: %v", err))
+		WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid request body, bad JSON: %v", err))
 		return err
 	}
 	return nil
 }
 
-func parseJSONBytes(b []byte, t interface{}) error {
+func ParseJSONBytes(b []byte, t interface{}) error {
 	return json.Unmarshal(b, t)
 }
 
-func parseJSONReader(r io.Reader, t interface{}) error {
+func ParseJSONReader(r io.Reader, t interface{}) error {
 	decoder := json.NewDecoder(r)
 	err := decoder.Decode(t)
 	return err
 }
 
-func bytesToJSON(bs []byte) (string, error) {
-	return toJSON(string(bs))
+func BytesToJSON(bs []byte) (string, error) {
+	return ToJSON(string(bs))
 }
 
-func toJSON(v interface{}) (string, error) {
+func ToJSON(v interface{}) (string, error) {
 	jsonValue, err := json.Marshal(v)
 	if err != nil {
 		return "", err
@@ -111,7 +107,7 @@ func GetJSON(url string, t interface{}) error {
 		return (fmt.Errorf("Error response %v: %v", resp.StatusCode, string(bodyBytes)))
 	}
 
-	err = parseJSONReader(resp.Body, t)
+	err = ParseJSONReader(resp.Body, t)
 	if err != nil {
 		return fmt.Errorf("couldn't parse response: %v", err)
 	}
@@ -133,7 +129,7 @@ func PostJSON(url string, t interface{}) error {
 		}
 		return (fmt.Errorf("Error response %v: %v", resp.StatusCode, string(bodyBytes)))
 	}
-	err = parseJSONReader(resp.Body, t)
+	err = ParseJSONReader(resp.Body, t)
 	if err != nil {
 		return fmt.Errorf("couldn't parse response: %v", err)
 	}
