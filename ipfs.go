@@ -57,11 +57,9 @@ func UploadBytesToIPFS(ctx context.Context, data []byte) (string, error) {
 		buf := bytes.NewBuffer(data)
 		cid, err := ipfs.Add(buf)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
-			// os.Exit(1)
 			return "", err
 		}
-		fmt.Printf("added %s\n", cid)
+// 		fmt.Printf("added %s\n", cid)
 		return cid, nil
 	}
 
@@ -106,7 +104,7 @@ func postToInfura(ctx context.Context, writer *multipart.Writer, body io.Reader)
 			return "", err
 		}
 		defer resp.Body.Close()
-		fmt.Println(string(bodyContent))
+// 		fmt.Println(string(bodyContent))
 	}
 	ipfsResp := &InfuraIPFSResponse{}
 	err = json.Unmarshal(bodyContent, ipfsResp)
