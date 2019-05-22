@@ -25,9 +25,9 @@ func (e *DetailedError) Error() string {
 }
 
 func WriteError(w http.ResponseWriter, code int, err error) {
-	switch t := err.(type) {
+	switch err.(type) {
 	case *DetailedError:
-		WriteObject(w, code, map[string]interface{}{"error": derr})
+		WriteObject(w, code, map[string]interface{}{"error": err})
 	default:
 		WriteObject(w, code, map[string]interface{}{"error": map[string]interface{}{"message": err.Error()}})
 	}
