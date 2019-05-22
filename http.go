@@ -27,11 +27,10 @@ func (e *DetailedError) Error() string {
 func WriteError(w http.ResponseWriter, code int, err error) {
 	switch t := err.(type) {
 	case *DetailedError:
-		fmt.Println("ModelMissingError", t)
+		WriteObject(w, code, map[string]interface{}{"error": derr})
 	default:
-		bodyMap := map[string]interface{}{"error": map[string]interface{}{"message": err.Error()}}
+		WriteObject(w, code, map[string]interface{}{"error": map[string]interface{}{"message": err.Error()}})
 	}
-	WriteObject(w, code, bodyMap)
 }
 
 func WriteMessage(w http.ResponseWriter, code int, msg string) {
