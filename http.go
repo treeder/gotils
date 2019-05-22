@@ -15,8 +15,22 @@ type BasicResponse struct {
 	Message string `json:"message"`
 }
 
+type DetailedError struct {
+	Message string `json:"message"`
+	Details string `json:"details"`
+}
+
+func (e *DetailedError) Error() string {
+	return e.Message
+}
+
 func WriteError(w http.ResponseWriter, code int, err error) {
-	bodyMap := map[string]interface{}{"error": map[string]interface{}{"message": err.Error()}}
+	switch t := err.(type) {
+	case *DetailedError:
+		fmt.Println("ModelMissingError", t)
+	default:
+		bodyMap := map[string]interface{}{"error": map[string]interface{}{"message": err.Error()}}
+	}
 	WriteObject(w, code, bodyMap)
 }
 
