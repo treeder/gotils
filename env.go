@@ -16,6 +16,7 @@ func GetEnvVar(name, def string) string {
 	if e != "" {
 		return e
 	}
+	// check if a metadata.json file exists, this is the file downloaded from google "REST equivalent" in metadata section
 	// if len(metaFileItems) > 0 {
 	// 	// see if we loaded it from a file
 	// 	for _, kv := range metaFileItems {
