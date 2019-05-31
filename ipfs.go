@@ -5,12 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
+
+	"go.uber.org/zap"
 
 	ipfsapi "github.com/ipfs/go-ipfs-api"
 )
@@ -59,7 +60,7 @@ func UploadBytesToIPFS(ctx context.Context, data []byte) (string, error) {
 		if err != nil {
 			return "", err
 		}
-// 		fmt.Printf("added %s\n", cid)
+		// 		fmt.Printf("added %s\n", cid)
 		return cid, nil
 	}
 
@@ -104,7 +105,7 @@ func postToInfura(ctx context.Context, writer *multipart.Writer, body io.Reader)
 			return "", err
 		}
 		defer resp.Body.Close()
-// 		fmt.Println(string(bodyContent))
+		// 		fmt.Println(string(bodyContent))
 	}
 	ipfsResp := &InfuraIPFSResponse{}
 	err = json.Unmarshal(bodyContent, ipfsResp)
@@ -142,4 +143,16 @@ func GetBytesFromIPFS(ctx context.Context, cid string) ([]byte, error) {
 		}
 	}
 	return stateBytes, nil
+}
+
+func GetJSONFromIPFS(ctx context.Context, cid string, t interface{}) error {
+	b, err := GetBytesFromIPFS(ctx, cid)
+	if err != nil {
+		return err
+	}
+	err = ParseJSONBytes(b, t)
+	if err != nil {
+		return err
+	}
+	return nil
 }
