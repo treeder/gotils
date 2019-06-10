@@ -56,7 +56,7 @@ func UploadBytesToIPFS(ctx context.Context, data []byte) (string, error) {
 	// try local first
 	if ipfsUp {
 		buf := bytes.NewBuffer(data)
-		cid, err := ipfs.Add(buf)
+		cid, err := ipfs.Add(buf, ipfsapi.CidVersion(1))
 		if err != nil {
 			return "", err
 		}
