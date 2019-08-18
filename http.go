@@ -24,6 +24,22 @@ func (e *DetailedError) Error() string {
 	return e.Message
 }
 
+type HttpError struct {
+	msg  string
+	code int
+}
+
+func NewHttpError(msg string, code int) *HttpError {
+	return &HttpError{msg: msg, code: code}
+}
+
+func (e *HttpError) Error() string {
+	return e.msg
+}
+func (e *HttpError) Code() int {
+	return e.code
+}
+
 func WriteError(w http.ResponseWriter, code int, err error) {
 	switch err.(type) {
 	case *DetailedError:
