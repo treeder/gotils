@@ -40,10 +40,14 @@ func WriteMessage(w http.ResponseWriter, code int, msg string) {
 }
 
 func WriteObject(w http.ResponseWriter, code int, obj interface{}) {
-	jsonValue, _ := json.Marshal(obj)
+	jsonValue, err := json.Marshal(obj)
+	if err != nil {
+		log.Printf("ERROR: couldn't marshal JSON in WriteObject: %v", err)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	_, err := w.Write([]byte(jsonValue))
+	_, err = w.Write([]byte(jsonValue))
 	if err != nil {
 		log.Printf("ERROR: couldn't write error response: %v", err)
 	}
