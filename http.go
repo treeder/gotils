@@ -72,7 +72,6 @@ func WriteObject(w http.ResponseWriter, code int, obj interface{}) {
 func ParseJSON(w http.ResponseWriter, r *http.Request, t interface{}) error {
 	err := ParseJSONReader(r.Body, t)
 	if err != nil {
-		WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid request body, bad JSON: %v", err))
 		return err
 	}
 	return nil
