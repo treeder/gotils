@@ -9,7 +9,18 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 )
+
+// Port will check env var for PORT (common on cloud services) and use that, otherwise it will run
+func Port(port int) int {
+	// portS := strconv.Itoa(port)
+	portS := os.Getenv("PORT")
+	if portS != "" {
+		port, _ = strconv.Atoi(portS)
+	}
+	return port
+}
 
 type BasicResponse struct {
 	Message string `json:"message"`
