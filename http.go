@@ -12,7 +12,8 @@ import (
 	"strconv"
 )
 
-// Port will check env var for PORT (common on cloud services) and use that, otherwise it will run
+// Port will check env var for PORT (common on cloud services) and use that, otherwise
+// it will return the provided port.
 func Port(port int) int {
 	// portS := strconv.Itoa(port)
 	portS := os.Getenv("PORT")
