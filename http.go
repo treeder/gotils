@@ -136,6 +136,7 @@ func GetString(url string) (string, error) {
 	return string(b), nil
 }
 
+// GetJSON performs a get request and then parses the result into t
 func GetJSON(url string, t interface{}) error {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -158,8 +159,9 @@ func GetJSON(url string, t interface{}) error {
 	return nil
 }
 
-func PostJSON(url string, t interface{}) error {
-	jsonValue, err := json.Marshal(t)
+// PostJSON performs a post request with tin as the body then parses the response into tout. tin and tout can be the same object.
+func PostJSON(url string, tin, tout interface{}) error {
+	jsonValue, err := json.Marshal(tin)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
 	if err != nil {
 		return err
@@ -173,7 +175,7 @@ func PostJSON(url string, t interface{}) error {
 		}
 		return (fmt.Errorf("Error response %v: %v", resp.StatusCode, string(bodyBytes)))
 	}
-	err = ParseJSONReader(resp.Body, t)
+	err = ParseJSONReader(resp.Body, tout)
 	if err != nil {
 		return fmt.Errorf("couldn't parse response: %v", err)
 	}
