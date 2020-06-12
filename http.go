@@ -123,7 +123,7 @@ func GetBytes(url string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		return nil, (fmt.Errorf("Error response %v: %v", resp.StatusCode, string(bodyBytes)))
+		return nil, NewHttpError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
 	}
 	return bodyBytes, nil
 }
@@ -149,7 +149,7 @@ func GetJSON(url string, t interface{}) error {
 		if err != nil {
 			return err
 		}
-		return (fmt.Errorf("Error response %v: %v", resp.StatusCode, string(bodyBytes)))
+		return NewHttpError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
 	}
 
 	err = ParseJSONReader(resp.Body, t)
@@ -173,7 +173,7 @@ func PostJSON(url string, tin, tout interface{}) error {
 		if err != nil {
 			return err
 		}
-		return (fmt.Errorf("Error response %v: %v", resp.StatusCode, string(bodyBytes)))
+		return NewHttpError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
 	}
 	err = ParseJSONReader(resp.Body, tout)
 	if err != nil {
