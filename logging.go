@@ -128,6 +128,13 @@ type Fielded interface {
 	Fields() map[string]interface{}
 }
 
+// FullStacked has all the goodies in it
+type FullStacked interface {
+	Fielded
+	Stacked
+	// maybe have a trace field in here? or the Fields can have a special trace key?
+}
+
 type stackedWrapper struct {
 	err    error
 	fields map[string]interface{}
