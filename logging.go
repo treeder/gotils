@@ -130,6 +130,7 @@ type Fielded interface {
 
 // FullStacked has all the goodies in it
 type FullStacked interface {
+	error
 	Fielded
 	Stacked
 	// maybe have a trace field in here? or the Fields can have a special trace key?
@@ -189,7 +190,7 @@ func Fields(ctx context.Context) map[string]interface{} {
 }
 
 // Errorf just like fmt.Errorf, but takes a stack trace (if none exists already)
-func Errorf(ctx context.Context, format string, a ...interface{}) error {
+func Errorf(ctx context.Context, format string, a ...interface{}) FullStacked {
 	e2 := fmt.Errorf(format, a...)
 	// only take stacktrace if not already Stacked
 	for _, x := range a {
