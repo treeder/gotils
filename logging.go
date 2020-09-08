@@ -89,6 +89,7 @@ type Printer interface {
 // see what I did there?
 type Wrapperr interface {
 	Errorf(format string, a ...interface{}) error
+	Printf(format string, a ...interface{})
 }
 
 // Fielder methods for adding structured fields
@@ -178,6 +179,9 @@ type wrapperr struct {
 func (w *wrapperr) Errorf(format string, a ...interface{}) error {
 	return Errorf(w.ctx, format, a...)
 }
+func (w *wrapperr) Printf(format string, a ...interface{}) {
+	Printf(w.ctx, format, a...)
+}
 
 // Fields returns all the fields added via With(...)
 func Fields(ctx context.Context) map[string]interface{} {
@@ -243,25 +247,40 @@ func takeStacktrace() []runtime.Frame {
 	return frames2
 }
 
-// ErrString temporary for how to print the stack, this should be in the logging lib.
-// See https://github.com/treeder/gcputils for example
-func ErrString(err error) string {
+// Printf prints a message along with contextual data
+func Printf(ctx context.Context, format string, a ...interface{}) {
+	msg := fmt.Sprintf(format, a...)
+	for _, x := range a {
+		switch y := x.(type) {
+		case error:
+			var e *stackedWrapper
+			if errors.As(y, &e) {
+				// This was already called before, so we don't want to get a new stack trace or change the existing fields
+				// Make a new wrapper so we don't lose any other errors in the chain
+				fmt.Print(str(msg, e.fields, e.stack))
+				return
+			}
+		}
+	}
+	fields, ok := ctx.Value(errContext).(map[string]interface{})
+	if !ok {
+		fields = map[string]interface{}{}
+	}
+	fmt.Print(str(msg, fields, nil))
+}
+
+func str(msg string, fields map[string]interface{}, stack []runtime.Frame) string {
 	buffer := bytes.Buffer{}
 	// todo: log lib should add severity, ie: ERROR
-	buffer.WriteString(err.Error())
+	buffer.WriteString(msg)
 	buffer.WriteRune('\n')
 
-	var e *stackedWrapper
-	if !errors.As(err, &e) {
-		return err.Error()
-	}
-
-	if e.Fields() != nil && len(e.Fields()) > 0 {
+	if fields != nil && len(fields) > 0 {
 		buffer.WriteRune('\t')
 		i := 0
-		for k, v := range e.Fields() {
+		for k, v := range fields {
 			buffer.WriteString(fmt.Sprintf("%v=%v", k, v))
-			if i < len(e.Fields())-1 {
+			if i < len(fields)-1 {
 				buffer.WriteString(", ")
 			}
 		}
@@ -269,7 +288,7 @@ func ErrString(err error) string {
 	}
 	buffer.WriteRune('\n')
 	buffer.WriteString("goroutine 1 [running]:\n")
-	for i, frame := range e.Stack() {
+	for i, frame := range stack {
 		if i != 0 {
 			buffer.WriteRune('\n')
 		}
@@ -285,6 +304,18 @@ func ErrString(err error) string {
 		i++
 	}
 	return buffer.String()
+}
+
+// ErrString prints an error to console.
+// See https://github.com/treeder/gcputils for example
+func ErrString(err error) string {
+	var e *stackedWrapper
+	if !errors.As(err, &e) {
+		return err.Error()
+	}
+
+	return str(err.Error(), e.Fields(), e.Stack())
+
 }
 
 func shouldSkip(s string) bool {
