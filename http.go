@@ -12,6 +12,15 @@ import (
 	"strconv"
 )
 
+var (
+	pf Printfer
+)
+
+// SetPrintfer to let this library print errors to your logging library
+func SetPrintfer(p Printfer) {
+	pf = p
+}
+
 // Port will check env var for PORT (common on cloud services) and use that, otherwise
 // it will return the provided port.
 func Port(port int) int {
@@ -26,6 +35,9 @@ func Port(port int) int {
 type BasicResponse struct {
 	Message string `json:"message"`
 }
+
+// TODO: need a UserError type that can have a message for a user and the raw error message for logging
+// maybe a NewUserError("some user message", rawError to wrap and user for logging)
 
 type DetailedError struct {
 	Message string `json:"message"`
@@ -50,6 +62,29 @@ func (e *HttpError) Error() string {
 }
 func (e *HttpError) Code() int {
 	return e.code
+}
+
+type ErrorHandlerFunc func(w http.ResponseWriter, r *http.Request) error
+
+// ErrorHandler a generic error handler that will respond with a generic error response
+// Set a logger/printer with gotils.SetPrintfer() to have this log to your logger
+func ErrorHandler(h ErrorHandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := h(w, r)
+		if err != nil {
+			if pf != nil {
+				pf.Printf("%v", err)
+			}
+			switch e := err.(type) {
+			case *HttpError:
+				// gcputils.Error().Printf("%v", err)
+				WriteError(w, e.Code(), e)
+			default:
+				// gcputils.Error().Printf("%v", err) // to cloud logging
+				WriteError(w, http.StatusInternalServerError, e)
+			}
+		}
+	}
 }
 
 func WriteError(w http.ResponseWriter, code int, err error) {

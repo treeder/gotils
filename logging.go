@@ -78,18 +78,23 @@ func AddFields(ctx context.Context, fields ...zap.Field) context.Context {
 END zap related stuff
 *********************/
 
+// Printfer just Printf
+type Printfer interface {
+	Printf(format string, v ...interface{})
+}
+
 // Printer common interface
 type Printer interface {
 	Print(v ...interface{})
 	Println(v ...interface{})
-	Printf(format string, v ...interface{})
+	Printfer
 }
 
 // Wrapperr is an interface for Errorf
 // see what I did there?
 type Wrapperr interface {
 	Errorf(format string, a ...interface{}) error
-	Printf(format string, a ...interface{})
+	Printfer
 }
 
 // Fielder methods for adding structured fields
