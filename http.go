@@ -3,6 +3,7 @@ package gotils
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -74,6 +75,9 @@ func ErrorHandler(h ErrorHandlerFunc) http.HandlerFunc {
 		if err != nil {
 			if pf != nil {
 				pf.Printf("%v", err)
+			}
+			if errors.Is(err, ErrNotFound) {
+				WriteError(w, http.StatusNotFound, err)
 			}
 			switch e := err.(type) {
 			case *HttpError:
