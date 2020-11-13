@@ -48,20 +48,26 @@ func ErrorHandler(h ErrorHandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := h(w, r)
 		if err != nil {
-			if pf != nil {
-				pf.Printf("%v", err)
-			}
 			if errors.Is(err, ErrNotFound) {
 				WriteError(w, http.StatusNotFound, err)
+				return
 			}
-			switch e := err.(type) {
-			case HTTPError:
-				// gcputils.Error().Printf("%v", err)
-				WriteError(w, e.Code(), e)
-			default:
-				// gcputils.Error().Printf("%v", err) // to cloud logging
-				WriteError(w, http.StatusInternalServerError, e)
+			if pf != nil {
+				// send to user defined output
+				pf.Printf("%v", err)
 			}
+			var ue UserError
+			if errors.As(err, &ue) {
+				WriteError(w, http.StatusBadRequest, errors.New(ue.UserError()))
+				return
+			}
+			var he HTTPError
+			if errors.As(err, &he) {
+				WriteError(w, he.Code(), he)
+				return
+			}
+			// default:
+			WriteError(w, http.StatusInternalServerError, errors.New("Internal server error"))
 		}
 	}
 }
