@@ -55,7 +55,7 @@ func ErrorHandler(h ErrorHandlerFunc) http.HandlerFunc {
 				WriteError(w, http.StatusNotFound, err)
 			}
 			switch e := err.(type) {
-			case *HttpError:
+			case HTTPError:
 				// gcputils.Error().Printf("%v", err)
 				WriteError(w, e.Code(), e)
 			default:
@@ -137,7 +137,7 @@ func GetBytes(url string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		return nil, NewHttpError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
+		return nil, NewHTTPError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
 	}
 	return bodyBytes, nil
 }
@@ -163,7 +163,7 @@ func GetJSON(url string, t interface{}) error {
 		if err != nil {
 			return err
 		}
-		return NewHttpError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
+		return NewHTTPError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
 	}
 
 	err = ParseJSONReader(resp.Body, t)
@@ -187,7 +187,7 @@ func PostJSON(url string, tin, tout interface{}) error {
 		if err != nil {
 			return err
 		}
-		return NewHttpError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
+		return NewHTTPError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
 	}
 	err = ParseJSONReader(resp.Body, tout)
 	if err != nil {
