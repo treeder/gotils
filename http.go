@@ -212,8 +212,6 @@ func checkError(resp *http.Response) error {
 		// attempt to parse JSON
 		er := &ErrorResponse{}
 		err2 := ParseJSONBytes(bodyBytes, er)
-		fmt.Println("err2:", err2)
-		fmt.Printf("er: %+v\n", er.Error, er.Error.Message)
 		if err2 == nil {
 			if er.Error != nil && er.Error.Message != "" {
 				return NewHTTPError(er.Error.Message, resp.StatusCode)
