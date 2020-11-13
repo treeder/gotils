@@ -33,6 +33,12 @@ func Port(port int) int {
 	return port
 }
 
+// ErrorResponse ...
+// Note: this is compatible with firebase errors too
+type ErrorResponse struct {
+	Error *BasicResponse `json:"error"`
+}
+
 type BasicResponse struct {
 	Message string `json:"message"`
 }
@@ -63,6 +69,7 @@ func ErrorHandler(h ErrorHandlerFunc) http.HandlerFunc {
 			}
 			var he HTTPError
 			if errors.As(err, &he) {
+				fmt.Println("http error", he.Code())
 				WriteError(w, he.Code(), he)
 				return
 			}
@@ -164,12 +171,9 @@ func GetJSON(url string, t interface{}) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		return NewHTTPError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
+	err = checkError(resp)
+	if err != nil {
+		return err
 	}
 
 	err = ParseJSONReader(resp.Body, t)
@@ -188,16 +192,33 @@ func PostJSON(url string, tin, tout interface{}) error {
 	}
 	defer resp.Body.Close()
 
+	err = checkError(resp)
+	if err != nil {
+		return err
+	}
+	err = ParseJSONReader(resp.Body, tout)
+	if err != nil {
+		return fmt.Errorf("couldn't parse response: %v", err)
+	}
+	return nil
+}
+
+func checkError(resp *http.Response) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}
-		return NewHTTPError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
-	}
-	err = ParseJSONReader(resp.Body, tout)
-	if err != nil {
-		return fmt.Errorf("couldn't parse response: %v", err)
+		// attempt to parse JSON
+		er := &ErrorResponse{}
+		err2 := ParseJSONBytes(bodyBytes, er)
+		if err2 != nil {
+			if er.Error.Message != "" {
+				return NewHTTPError(er.Error.Message, resp.StatusCode)
+			}
+		}
+		// couldn't parse or no message, so just send regular error
+		return NewHTTPError(fmt.Sprintf("Error %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
 	}
 	return nil
 }
