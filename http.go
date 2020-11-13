@@ -33,37 +33,18 @@ func Port(port int) int {
 	return port
 }
 
+// ErrorResponse ...
+// Note: this is compatible with firebase errors too
+type ErrorResponse struct {
+	Error *BasicResponse `json:"error"`
+}
+
 type BasicResponse struct {
 	Message string `json:"message"`
 }
 
 // TODO: need a UserError type that can have a message for a user and the raw error message for logging
 // maybe a NewUserError("some user message", rawError to wrap and user for logging)
-
-type DetailedError struct {
-	Message string `json:"message"`
-	Details string `json:"details"`
-}
-
-func (e *DetailedError) Error() string {
-	return e.Message
-}
-
-type HttpError struct {
-	msg  string
-	code int
-}
-
-func NewHttpError(msg string, code int) *HttpError {
-	return &HttpError{msg: msg, code: code}
-}
-
-func (e *HttpError) Error() string {
-	return e.msg
-}
-func (e *HttpError) Code() int {
-	return e.code
-}
 
 type ErrorHandlerFunc func(w http.ResponseWriter, r *http.Request) error
 
@@ -73,20 +54,27 @@ func ErrorHandler(h ErrorHandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := h(w, r)
 		if err != nil {
-			if pf != nil {
-				pf.Printf("%v", err)
-			}
 			if errors.Is(err, ErrNotFound) {
 				WriteError(w, http.StatusNotFound, err)
+				return
 			}
-			switch e := err.(type) {
-			case *HttpError:
-				// gcputils.Error().Printf("%v", err)
-				WriteError(w, e.Code(), e)
-			default:
-				// gcputils.Error().Printf("%v", err) // to cloud logging
-				WriteError(w, http.StatusInternalServerError, e)
+			if pf != nil {
+				// send to user defined output
+				pf.Printf("%v", err)
 			}
+			var ue UserError
+			if errors.As(err, &ue) {
+				WriteError(w, http.StatusBadRequest, errors.New(ue.UserError()))
+				return
+			}
+			var he HTTPError
+			if errors.As(err, &he) {
+				fmt.Println("http error", he.Code())
+				WriteError(w, he.Code(), he)
+				return
+			}
+			// default:
+			WriteError(w, http.StatusInternalServerError, errors.New("Internal server error"))
 		}
 	}
 }
@@ -162,7 +150,7 @@ func GetBytes(url string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		return nil, NewHttpError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
+		return nil, NewHTTPError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
 	}
 	return bodyBytes, nil
 }
@@ -183,12 +171,9 @@ func GetJSON(url string, t interface{}) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		return NewHttpError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
+	err = checkError(resp)
+	if err != nil {
+		return err
 	}
 
 	err = ParseJSONReader(resp.Body, t)
@@ -207,16 +192,33 @@ func PostJSON(url string, tin, tout interface{}) error {
 	}
 	defer resp.Body.Close()
 
+	err = checkError(resp)
+	if err != nil {
+		return err
+	}
+	err = ParseJSONReader(resp.Body, tout)
+	if err != nil {
+		return fmt.Errorf("couldn't parse response: %v", err)
+	}
+	return nil
+}
+
+func checkError(resp *http.Response) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}
-		return NewHttpError(fmt.Sprintf("Error response %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
-	}
-	err = ParseJSONReader(resp.Body, tout)
-	if err != nil {
-		return fmt.Errorf("couldn't parse response: %v", err)
+		// attempt to parse JSON
+		er := &ErrorResponse{}
+		err2 := ParseJSONBytes(bodyBytes, er)
+		if err2 == nil {
+			if er.Error != nil && er.Error.Message != "" {
+				return NewHTTPError(er.Error.Message, resp.StatusCode)
+			}
+		}
+		// couldn't parse or no message, so just send regular error
+		return NewHTTPError(fmt.Sprintf("Error %v: %v", resp.StatusCode, string(bodyBytes)), resp.StatusCode)
 	}
 	return nil
 }
