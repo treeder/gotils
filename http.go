@@ -40,31 +40,6 @@ type BasicResponse struct {
 // TODO: need a UserError type that can have a message for a user and the raw error message for logging
 // maybe a NewUserError("some user message", rawError to wrap and user for logging)
 
-type DetailedError struct {
-	Message string `json:"message"`
-	Details string `json:"details"`
-}
-
-func (e *DetailedError) Error() string {
-	return e.Message
-}
-
-type HttpError struct {
-	msg  string
-	code int
-}
-
-func NewHttpError(msg string, code int) *HttpError {
-	return &HttpError{msg: msg, code: code}
-}
-
-func (e *HttpError) Error() string {
-	return e.msg
-}
-func (e *HttpError) Code() int {
-	return e.code
-}
-
 type ErrorHandlerFunc func(w http.ResponseWriter, r *http.Request) error
 
 // ErrorHandler a generic error handler that will respond with a generic error response
