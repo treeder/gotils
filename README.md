@@ -2,6 +2,12 @@
 
 This is where I experiment with Go stuff.
 
+## Update Go Version
+
+```sh
+curl -LSs https://raw.githubusercontent.com/treeder/gotils/master/update.sh | sh
+```
+
 ## Logging
 
 Why? I was getting annoyed with things like this all over the place:
@@ -28,10 +34,10 @@ This is how it works:
 // add context fields
 ctx = gotils.With(ctx, "abc", 123)
 // We got an error from somewhere, so let's wrap it and capture the current context with stacktrace
-return gotils.C(ctx).Errorf("uh oh: %w", err)
+return gotils.C(ctx).Error().Printf("uh oh: %w", err)
 // return it, then next level adds message context, like normal
-return gotils.C(ctx).Errorf("doh: %v", err)
+return gotils.C(ctx).Error().Printf("doh: %v", err)
 // and so on until we are ready to return something to the user
 gcputils.Print(err) // write to google cloud logging in proper structured format
-fmt.Print(gotils.ErrString(err)) // write to user
+fmt.Print(gotils.ErrString(err)) // write to console
 ```
