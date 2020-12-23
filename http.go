@@ -74,7 +74,7 @@ func ErrorHandler(h ErrorHandlerFunc) http.HandlerFunc {
 				return
 			}
 			// default:
-			WriteError(w, http.StatusInternalServerError, errors.New("Internal server error"))
+			WriteError(w, http.StatusInternalServerError, err)
 		}
 	}
 }
