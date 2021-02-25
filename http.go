@@ -100,7 +100,7 @@ func WriteObject(w http.ResponseWriter, code int, obj interface{}) {
 		log.Printf("ERROR: couldn't marshal JSON in WriteObject: %v", err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
 	_, err = w.Write([]byte(jsonValue))
 	if err != nil {
