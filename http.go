@@ -54,28 +54,51 @@ func ErrorHandler(h ErrorHandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := h(w, r)
 		if err != nil {
-			if errors.Is(err, ErrNotFound) {
-				WriteError(w, http.StatusNotFound, err)
-				return
-			}
-			if pf != nil {
-				// send to user defined output
-				pf.Printf("%v", err)
-			}
-			var ue UserError
-			if errors.As(err, &ue) {
-				WriteError(w, http.StatusBadRequest, errors.New(ue.UserError()))
-				return
-			}
-			var he HTTPError
-			if errors.As(err, &he) {
-				fmt.Println("http error", he.Code())
-				WriteError(w, he.Code(), he)
-				return
-			}
-			// default:
-			WriteError(w, http.StatusInternalServerError, err)
+			handleErr(w, err)
 		}
+	}
+}
+
+func handleErr(w http.ResponseWriter, err error) {
+	if errors.Is(err, ErrNotFound) {
+		WriteError(w, http.StatusNotFound, err)
+		return
+	}
+	if pf != nil {
+		// send to user defined output
+		pf.Printf("%v", err)
+	}
+	var ue UserError
+	if errors.As(err, &ue) {
+		WriteError(w, http.StatusBadRequest, errors.New(ue.UserError()))
+		return
+	}
+	var he HTTPError
+	if errors.As(err, &he) {
+		fmt.Println("http error", he.Code())
+		WriteError(w, he.Code(), he)
+		return
+	}
+	// default:
+	WriteError(w, http.StatusInternalServerError, err)
+}
+
+type ObjectNamer interface {
+	ObjectName() string
+}
+
+type ObjectHandlerFunc func(w http.ResponseWriter, r *http.Request) (ObjectNamer, error)
+
+// ErrorHandler a generic error handler that will respond with a generic error response
+// Set a logger/printer with gotils.SetPrintfer() to have this log to your logger
+func ObjectHandler(h ObjectHandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		v, err := h(w, r)
+		if err != nil {
+			handleErr(w, err)
+		}
+		// respond with object
+		WriteObject(w, 200, map[string]interface{}{v.ObjectName(): v})
 	}
 }
 
@@ -186,6 +209,9 @@ func GetJSON(url string, t interface{}) error {
 // PostJSON performs a post request with tin as the body then parses the response into tout. tin and tout can be the same object.
 func PostJSON(url string, tin, tout interface{}) error {
 	jsonValue, err := json.Marshal(tin)
+	if err != nil {
+		return err
+	}
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
 	if err != nil {
 		return err

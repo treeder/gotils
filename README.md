@@ -10,6 +10,8 @@ curl -LSs https://raw.githubusercontent.com/treeder/gotils/master/update.sh | sh
 
 ## Logging
 
+[A blog post about this](https://betterprogramming.pub/fun-or-not-with-golang-errors-26b2b0e231c5)
+
 Why? I was getting annoyed with things like this all over the place:
 
 ```go
@@ -28,16 +30,55 @@ So I started thinking how to make this better by adding context to errors rather
 am aware of the [pkg/errors](https://github.com/pkg/errors) lib, but it's in maintenance mode now and isn't compatible
 with the new error features (ie: error wrapping) and it doesn't let you add fields.
 
-This is how it works:
+So a few things I'm trying here:
+
+1. Add context along the way
+1. Collect stacktrace at the deepest point where the error happens (as close to the root error as possible)
+1. Write error message, context fields and stacktrace in the appropriate format for your logging system
 
 ```go
-// add context fields
-ctx = gotils.With(ctx, "abc", 123)
-// We got an error from somewhere, so let's wrap it and capture the current context with stacktrace
-return gotils.C(ctx).Error().Printf("uh oh: %w", err)
-// return it, then next level adds message context, like normal
-return gotils.C(ctx).Error().Printf("doh: %v", err)
-// and so on until we are ready to return something to the user
-gcputils.Print(err) // write to google cloud logging in proper structured format
-fmt.Print(gotils.ErrString(err)) // write to console
+// Add context:
+gotils.With(ctx, "foo", "bar")
+// Return errors with stacktrace
+return gotils.C(ctx).Errorf("something bad happened: %v", err)
+// Then log it wherever you want and you can usually do this in one place
+if err != nil {
+    // this writes to Google Cloud Loggig properly:
+    gcputils.Printf("%v", err)
+}
+```
+
+## HTTP Error Handler
+
+To get use the above error context capturing and make HTTP error handling really clean and easy, try this.
+
+First have your http endpoint functions return an error:
+
+```go
+func foo(w http.ResponseWriter, r *http.Request) error {
+    // do stuff
+    return err
+}
+```
+
+Then wrap and add your http function like this:
+
+```go
+http.HandleFunc("/bar", gotils.ErrorHandler(foo))
+```
+
+Now it will handle errors and return nice JSON error responses without you having to do anything.
+
+## HTTP Utils
+
+```go
+// GET JSON from API
+v := &MyObject{}
+err := gotils.GetJSON(url, v) // also GetString, GetBytes
+
+// POST JSON to an API
+err := gotils.PostJSON(url, v)
+
+// And some response handling
+gotils.WriteObject(w, 200, v) // also WriteMessage, WriteError
 ```
