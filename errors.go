@@ -1,12 +1,11 @@
 package gotils
 
 import (
-	"errors"
 	"fmt"
 )
 
 // ErrNotFound generic sentinel not found error
-var ErrNotFound = errors.New("not found")
+var ErrNotFound = NewHTTPError("not found", 404)
 
 // UserError let's you set a separate error message intended for the end user.
 // See UserErrorf for creating one.
