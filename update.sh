@@ -4,7 +4,7 @@ set -ex
 # todo: allow to pass in version
 # todo: grab latest version automatically
 
-tar="go1.15.6.linux-amd64.tar.gz"
+tar="go1.16.3.linux-amd64.tar.gz"
 url="https://golang.org/dl/$tar"
 echo "url $url"
 $(curl -L $url --output go.tar.gz)
