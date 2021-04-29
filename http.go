@@ -96,9 +96,11 @@ func ObjectHandler(h ObjectHandlerFunc) http.HandlerFunc {
 		v, err := h(w, r)
 		if err != nil {
 			handleErr(w, err)
+			return
 		}
 		if v == nil {
 			handleErr(w, ErrNotFound)
+			return
 		}
 		// respond with object
 		WriteObject(w, 200, map[string]interface{}{v.ObjectName(): v})
