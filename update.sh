@@ -1,5 +1,5 @@
 # This updates Go to the latest version
-set -ex
+set -e
 
 # copied from: https://gist.github.com/davivcgarcia/2fea719c67f1c6282bc53df46f7add25#file-update-golang-sh Thanks!
 
