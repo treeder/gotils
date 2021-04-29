@@ -5,7 +5,7 @@ This is where I experiment with Go stuff.
 ## Update Go Version
 
 ```sh
-curl -LSs https://raw.githubusercontent.com/treeder/gotils/master/update.sh | sh
+curl -LSs https://raw.githubusercontent.com/treeder/gotils/master/update.sh | bash
 ```
 
 ## Logging
