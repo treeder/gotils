@@ -34,8 +34,11 @@ type Printer interface {
 // Wrapperr is an interface for Errorf
 // see what I did there?
 type Wrapperr interface {
+	// creates an error and wraps it up
 	Errorf(format string, a ...interface{}) error
 	Printfer
+	// wraps the error that's passed in
+	Error(err error) error
 }
 
 // Fielder methods for adding structured fields
@@ -129,6 +132,9 @@ func (w *wrapperr) Errorf(format string, a ...interface{}) error {
 func (w *wrapperr) Printf(format string, a ...interface{}) {
 	Printf(w.ctx, format, a...)
 }
+func (w *wrapperr) Error(err error) error {
+	return Error(w.ctx, err)
+}
 
 // Fields returns all the fields added via With(...)
 func Fields(ctx context.Context) map[string]interface{} {
@@ -168,7 +174,30 @@ func Errorf(ctx context.Context, format string, a ...interface{}) FullStacked {
 			}
 		}
 	}
+	return Error(ctx, e2)
+}
 
+func Error(ctx context.Context, e2 error) FullStacked {
+	var e *stackedWrapper
+	if errors.As(e2, &e) {
+		// This was already called before, so we don't want to get a new stack trace or change the existing fields
+		// Make a new wrapper so we don't lose any other errors in the chain
+		e3 := &stackedWrapper{
+			err:    e2,
+			fields: e.fields,
+			stack:  e.stack,
+		}
+		// add any new fields that may have been added
+		fields, ok := ctx.Value(errContext).(map[string]interface{})
+		if ok {
+			for k, v := range fields {
+				if e3.fields[k] == nil {
+					e3.fields[k] = v
+				}
+			}
+		}
+		return e3
+	}
 	fields, ok := ctx.Value(errContext).(map[string]interface{})
 	if !ok {
 		fields = map[string]interface{}{}
