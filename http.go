@@ -112,7 +112,7 @@ func WriteError(w http.ResponseWriter, code int, err error) {
 	case *DetailedError:
 		WriteObject(w, code, map[string]interface{}{"error": err})
 	default:
-		WriteObject(w, code, map[string]interface{}{"error": map[string]interface{}{"message": err.Error()}})
+		WriteObject(w, code, map[string]interface{}{"error": map[string]interface{}{"message": err.Error(), "status": code}})
 	}
 }
 
@@ -227,9 +227,11 @@ func PostJSON(url string, tin, tout interface{}) error {
 	if err != nil {
 		return err
 	}
-	err = ParseJSONReader(resp.Body, tout)
-	if err != nil {
-		return fmt.Errorf("couldn't parse response: %v", err)
+	if tout != nil {
+		err = ParseJSONReader(resp.Body, tout)
+		if err != nil {
+			return fmt.Errorf("couldn't parse response: %v", err)
+		}
 	}
 	return nil
 }
