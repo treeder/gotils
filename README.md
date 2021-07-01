@@ -38,14 +38,20 @@ So a few things I'm trying here:
 
 ```go
 // Add context:
-gotils.With(ctx, "foo", "bar")
-// Return errors with stacktrace
+ctx = gotils.With(ctx, "foo", "bar")
+// Return errors with embedded stacktrace
 return gotils.C(ctx).Errorf("something bad happened: %v", err)
-// Then log it wherever you want and you can usually do this in one place
+// Then log it wherever you want:
 if err != nil {
-    // this writes to Google Cloud Loggig properly:
-    gcputils.Printf("%v", err)
+    // this writes to Google Cloud Logging in the proper format:
+    gotils.LogBeta(ctx, "error", "%v", err) // LogBeta name will change once the syntax is solidified
 }
+```
+
+To log in a particular format or to send them to another service, set a `Loggable` instance: 
+
+```go
+gotils.SetLoggable(gcputils.NewLogger())
 ```
 
 ## HTTP Error Handler

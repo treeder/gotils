@@ -97,6 +97,33 @@ func (e *stackedWrapper) Unwrap() error                  { return e.err }
 func (e *stackedWrapper) Stack() []runtime.Frame         { return e.stack }
 func (e *stackedWrapper) Fields() map[string]interface{} { return e.fields }
 
+type Loggable interface {
+	LogBeta(ctx context.Context, severity, format string, a ...interface{})
+}
+
+var (
+	pf       Printfer
+	loggable Loggable
+)
+
+// SetPrintfer to let this library print errors to your logging library
+//
+// Deprecated: Use SetLoggable
+func SetPrintfer(p Printfer) {
+	pf = p
+}
+
+// SetLoggable is where you can set where the logs will go
+func SetLoggable(l Loggable) {
+	loggable = l
+}
+
+// LogBeta is the general function for all logging.
+// It will change from LogBeta to something better when I'm comfortable with this.
+func LogBeta(ctx context.Context, severity, format string, a ...interface{}) {
+	loggable.LogBeta(ctx, severity, format, a...)
+}
+
 // With clones the error, then adds structured key/value pairs.
 // Use this one if you plan on passing this along to other functions or setting global fields.
 // todo: Provide similar function with user defined context key
@@ -154,8 +181,8 @@ func Errorf(ctx context.Context, format string, a ...interface{}) FullStacked {
 		case error:
 			var e *stackedWrapper
 			if errors.As(y, &e) {
-				// This was already called before, so we don't want to get a new stack trace or change the existing fields
-				// Make a new wrapper so we don't lose any other errors in the chain
+				// This was already called before, so we don't want to get a new stack trace or change the existing fields,
+				// but make new wrapper so we don't lose any other errors in the chain
 				e3 := &stackedWrapper{
 					err:    e2,
 					fields: e.fields,
@@ -295,9 +322,5 @@ func ErrString(err error) string {
 }
 
 func shouldSkip(s string) bool {
-	// fmt.Println("should skip: ", s)
-	if strings.HasPrefix(s, "github.com/treeder/gotils") {
-		return true
-	}
-	return false
+	return strings.HasPrefix(s, "github.com/treeder/gotils")
 }

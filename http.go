@@ -13,15 +13,6 @@ import (
 	"strconv"
 )
 
-var (
-	pf Printfer
-)
-
-// SetPrintfer to let this library print errors to your logging library
-func SetPrintfer(p Printfer) {
-	pf = p
-}
-
 // Port will check env var for PORT (common on cloud services) and use that, otherwise
 // it will return the provided port.
 func Port(port int) int {
