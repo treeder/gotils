@@ -121,6 +121,11 @@ func SetLoggable(l Loggable) {
 // LogBeta is the general function for all logging.
 // It will change from LogBeta to something better when I'm comfortable with this.
 func LogBeta(ctx context.Context, severity, format string, a ...interface{}) {
+	if loggable == nil {
+		// then just default to console
+		Printf(ctx, format, a...)
+		return
+	}
 	loggable.LogBeta(ctx, severity, format, a...)
 }
 
