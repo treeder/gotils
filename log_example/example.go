@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/treeder/gotils"
+	"github.com/treeder/gotils/v2"
 )
 
 func main() {
