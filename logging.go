@@ -98,6 +98,7 @@ func (e *stackedWrapper) Stack() []runtime.Frame         { return e.stack }
 func (e *stackedWrapper) Fields() map[string]interface{} { return e.fields }
 
 type Loggable interface {
+	// TODO: this should be Logf for https://github.com/treeder/gotils/issues/5
 	LogBeta(ctx context.Context, severity, format string, a ...interface{})
 }
 
@@ -120,6 +121,7 @@ func SetLoggable(l Loggable) {
 
 // LogBeta is the general function for all logging.
 // It will change from LogBeta to something better when I'm comfortable with this.
+// https://github.com/treeder/gotils/issues/5
 func LogBeta(ctx context.Context, severity, format string, a ...interface{}) {
 	if loggable == nil {
 		// then just default to console
