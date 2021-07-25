@@ -39,6 +39,8 @@ type Wrapperr interface {
 	Printfer
 	// wraps the error that's passed in
 	Error(err error) error
+	// Internal error that shouldn't be displayed to the user
+	Internal(err error) Wrapperr
 }
 
 // Fielder methods for adding structured fields
@@ -86,6 +88,14 @@ type FullStacked interface {
 	// maybe have a trace field in here? or the Fields can have a special trace key?
 }
 
+type internalError struct {
+	err error
+	msg string
+}
+
+func (e *internalError) Error() string { return e.err.Error() }
+func (e *internalError) Unwrap() error { return e.err }
+
 type stackedWrapper struct {
 	err    error
 	fields map[string]interface{}
@@ -100,6 +110,7 @@ func (e *stackedWrapper) Fields() map[string]interface{} { return e.fields }
 type Loggable interface {
 	// TODO: this should be Logf for https://github.com/treeder/gotils/issues/5
 	LogBeta(ctx context.Context, severity, format string, a ...interface{})
+	LogBeta2(ctx context.Context, severity string, a ...interface{})
 }
 
 var (
@@ -122,6 +133,7 @@ func SetLoggable(l Loggable) {
 // LogBeta is the general function for all logging.
 // It will change from LogBeta to something better when I'm comfortable with this.
 // https://github.com/treeder/gotils/issues/5
+// This should be Logf
 func LogBeta(ctx context.Context, severity, format string, a ...interface{}) {
 	if loggable == nil {
 		// then just default to console
@@ -129,6 +141,15 @@ func LogBeta(ctx context.Context, severity, format string, a ...interface{}) {
 		return
 	}
 	loggable.LogBeta(ctx, severity, format, a...)
+}
+
+// this should be Log
+func LogBeta2(ctx context.Context, severity string, a ...interface{}) {
+	s := ""
+	for _, v := range a {
+		s += fmt.Sprintf("%v", v)
+	}
+	LogBeta(ctx, severity, s)
 }
 
 // With clones the error, then adds structured key/value pairs.
@@ -151,16 +172,25 @@ func With(ctx context.Context, key string, value interface{}) context.Context {
 	return ctx
 }
 
+// type Internal interface {
+// 	Internal() error
+// }
+
 // C use this to get an object back that has the regular Errorf signature.
 func C(ctx context.Context) Wrapperr {
-	return &wrapperr{ctx}
+	return &wrapperr{ctx: ctx}
 }
 
 type wrapperr struct {
-	ctx context.Context
+	ctx           context.Context
+	internalError error
 }
 
 func (w *wrapperr) Errorf(format string, a ...interface{}) error {
+	if w.internalError != nil {
+		// wrap the internal one first
+		return &internalError{err: w.internalError, msg: fmt.Sprintf(format, a...)}
+	}
 	return Errorf(w.ctx, format, a...)
 }
 func (w *wrapperr) Printf(format string, a ...interface{}) {
@@ -168,6 +198,10 @@ func (w *wrapperr) Printf(format string, a ...interface{}) {
 }
 func (w *wrapperr) Error(err error) error {
 	return Error(w.ctx, err)
+}
+func (w *wrapperr) Internal(err error) Wrapperr {
+	w.internalError = Error(w.ctx, err) // wrap it and stack it
+	return w
 }
 
 // Fields returns all the fields added via With(...)
@@ -285,7 +319,7 @@ func str(msg string, fields map[string]interface{}, stack []runtime.Frame) strin
 	buffer.WriteString(msg)
 	buffer.WriteRune('\n')
 
-	if fields != nil && len(fields) > 0 {
+	if len(fields) > 0 {
 		buffer.WriteRune('\t')
 		i := 0
 		for k, v := range fields {
