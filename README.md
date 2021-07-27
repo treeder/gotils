@@ -43,8 +43,8 @@ ctx = gotils.With(ctx, "foo", "bar")
 return gotils.C(ctx).Errorf("something bad happened: %v", err)
 // Then log it wherever you want:
 if err != nil {
-    // this writes to Google Cloud Logging in the proper format:
-    gotils.LogBeta(ctx, "error", "%v", err) // LogBeta name will change once the syntax is solidified
+    // this writes to your provided logger or the console if no logger set in SetLoggable
+    gotils.Logf(ctx, "error", "%v", err)
 }
 ```
 

@@ -43,32 +43,22 @@ type Wrapperr interface {
 	Internal(err error) Wrapperr
 }
 
-// Fielder methods for adding structured fields
-type Fielder interface {
-	// F adds structured key/value pairs which will show up nicely in Cloud Logging.
-	// Typically use this on the same line as your Printx()
-	F(string, interface{}) Line
-	// With clones (unlike F), then adds structured key/value pairs which will show up nicely in Cloud Logging.
-	// Use this one if you plan on passing this along to other functions or setting global fields.
-	With(string, interface{}) Line
-}
-
 // Leveler methods to set levels on loggers
 type Leveler interface {
 	// Debug returns a new logger with Debug severity
-	Debug() Line
+	Debug() Printer
 	// Info returns a new logger with INFO severity
-	Info() Line
+	Info() Printer
 	// Error returns a new logger with ERROR severity
-	Error() Line
+	Error() Printer
 }
 
-// Line is the main interface returned from most functions
-type Line interface {
-	Fielder
-	Printer
-	Leveler
-}
+// // Line is the main interface returned from most functions
+// type Line interface {
+// 	// Fielder
+// 	// Printer
+// 	Leveler
+// }
 
 // Stacked is a wrapper for an error with a stack
 type Stacked interface {
@@ -134,7 +124,19 @@ func SetLoggable(l Loggable) {
 // It will change from LogBeta to something better when I'm comfortable with this.
 // https://github.com/treeder/gotils/issues/5
 // This should be Logf
+// Deprecated: use Logf
 func LogBeta(ctx context.Context, severity, format string, a ...interface{}) {
+	Logf(ctx, severity, format, a...)
+}
+
+// LogBeta2 this should be Log
+// Deprecated: use Log
+func LogBeta2(ctx context.Context, severity string, a ...interface{}) {
+	Log(ctx, severity, a...)
+}
+
+// Logf the Printf style
+func Logf(ctx context.Context, severity, format string, a ...interface{}) {
 	if loggable == nil {
 		// then just default to console
 		Printf(ctx, format, a...)
@@ -143,12 +145,12 @@ func LogBeta(ctx context.Context, severity, format string, a ...interface{}) {
 	loggable.LogBeta(ctx, severity, format, a...)
 }
 
-// this should be Log
-func LogBeta2(ctx context.Context, severity string, a ...interface{}) {
-	s := ""
-	for _, v := range a {
-		s += fmt.Sprintf("%v", v)
-	}
+// Log the Print/Println style
+func Log(ctx context.Context, severity string, a ...interface{}) {
+	s := fmt.Sprintln(a...)
+	// for _, v := range a {
+	// 	s += fmt.Sprintf("%v", v)
+	// }
 	LogBeta(ctx, severity, s)
 }
 
@@ -172,11 +174,59 @@ func With(ctx context.Context, key string, value interface{}) context.Context {
 	return ctx
 }
 
-// type Internal interface {
-// 	Internal() error
-// }
+// NewLine returns an object that deals with logging
+func NewLine(ctx context.Context) Leveler {
+	return &line{ctx: ctx}
+}
 
-// C use this to get an object back that has the regular Errorf signature.
+type line struct {
+	ctx context.Context
+	sev string
+	// fields map[string]interface{}
+	// trace  string
+}
+
+func (l *line) Debug() Printer {
+	// l2 := l.clone()
+	l.sev = "debug"
+	return l
+}
+
+func (l *line) Info() Printer {
+	// l2 := l.clone()
+	l.sev = "info"
+	return l
+}
+func (l *line) Error() Printer {
+	// l2 := l.clone()
+	l.sev = "error"
+	return l
+}
+
+// Printf prints to the appropriate destination
+// Arguments are handled in the manner of fmt.Printf.
+func (l *line) Printf(format string, v ...interface{}) {
+	LogBeta(l.ctx, l.sev, format, v...)
+}
+
+// Println prints to the appropriate destination
+// Arguments are handled in the manner of fmt.Println.
+func (l *line) Println(v ...interface{}) {
+	l.Print(v...)
+}
+
+// Print prints to the appropriate destination
+// Arguments are handled in the manner of fmt.Print.
+func (l *line) Print(v ...interface{}) {
+	LogBeta2(l.ctx, l.sev, v...)
+}
+
+// L returns an object that deals with logging
+func L(ctx context.Context) Leveler {
+	return NewLine(ctx)
+}
+
+// C use this to get an object that deals with errors.
 func C(ctx context.Context) Wrapperr {
 	return &wrapperr{ctx: ctx}
 }
@@ -317,40 +367,45 @@ func str(msg string, fields map[string]interface{}, stack []runtime.Frame) strin
 	buffer := bytes.Buffer{}
 	// todo: log lib should add severity, ie: ERROR
 	buffer.WriteString(msg)
-	buffer.WriteRune('\n')
+	if msg[len(msg)-1] != '\n' {
+		buffer.WriteRune('\n')
+	}
 
 	if len(fields) > 0 {
 		buffer.WriteRune('\t')
 		i := 0
 		for k, v := range fields {
-			buffer.WriteString(fmt.Sprintf("%v=%v", k, v))
+			buffer.WriteString(fmt.Sprintf("%v: %v", k, v))
 			if i < len(fields)-1 {
-				buffer.WriteString(", ")
+				buffer.WriteString("\n\t")
 			}
+			i++
 		}
 		buffer.WriteRune('\n')
 	}
-	buffer.WriteRune('\n')
-	buffer.WriteString("goroutine 1 [running]:\n")
-	for i, frame := range stack {
-		if i != 0 {
-			buffer.WriteRune('\n')
-		}
-		buffer.WriteString(frame.Function)
-		buffer.WriteRune('(')
-		buffer.WriteString(fmt.Sprintf("%v", frame.PC))
-		buffer.WriteRune(')')
+	if stack != nil {
 		buffer.WriteRune('\n')
-		buffer.WriteRune('\t')
-		buffer.WriteString(frame.File)
-		buffer.WriteRune(':')
-		buffer.WriteString(strconv.Itoa(frame.Line))
-		i++
+		buffer.WriteString("goroutine 1 [running]:\n")
+		for i, frame := range stack {
+			if i != 0 {
+				buffer.WriteRune('\n')
+			}
+			buffer.WriteString(frame.Function)
+			buffer.WriteRune('(')
+			buffer.WriteString(fmt.Sprintf("%v", frame.PC))
+			buffer.WriteRune(')')
+			buffer.WriteRune('\n')
+			buffer.WriteRune('\t')
+			buffer.WriteString(frame.File)
+			buffer.WriteRune(':')
+			buffer.WriteString(strconv.Itoa(frame.Line))
+			i++
+		}
 	}
 	return buffer.String()
 }
 
-// ErrString prints an error to console.
+// ErrString returns a string representation of error including stacktrace, etc
 // See https://github.com/treeder/gcputils for example
 func ErrString(err error) string {
 	var e *stackedWrapper
