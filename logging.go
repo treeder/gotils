@@ -98,9 +98,8 @@ func (e *stackedWrapper) Stack() []runtime.Frame         { return e.stack }
 func (e *stackedWrapper) Fields() map[string]interface{} { return e.fields }
 
 type Loggable interface {
-	// TODO: this should be Logf for https://github.com/treeder/gotils/issues/5
-	LogBeta(ctx context.Context, severity, format string, a ...interface{})
-	LogBeta2(ctx context.Context, severity string, a ...interface{})
+	Logf(ctx context.Context, severity, format string, a ...interface{})
+	Log(ctx context.Context, severity string, a ...interface{})
 }
 
 var (
@@ -142,7 +141,7 @@ func Logf(ctx context.Context, severity, format string, a ...interface{}) {
 		Printf(ctx, format, a...)
 		return
 	}
-	loggable.LogBeta(ctx, severity, format, a...)
+	loggable.Logf(ctx, severity, format, a...)
 }
 
 // Log the Print/Println style
@@ -151,7 +150,7 @@ func Log(ctx context.Context, severity string, a ...interface{}) {
 	// for _, v := range a {
 	// 	s += fmt.Sprintf("%v", v)
 	// }
-	LogBeta(ctx, severity, s)
+	Logf(ctx, severity, s)
 }
 
 // With clones the error, then adds structured key/value pairs.
