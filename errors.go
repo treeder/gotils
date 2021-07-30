@@ -87,3 +87,12 @@ func (e *httpError) Error() string {
 func (e *httpError) Code() int {
 	return e.code
 }
+
+// don't want to keep the reflect package in here...
+// func DumpError(err error) {
+// 	if err == nil {
+// 		return
+// 	}
+// 	fmt.Println(reflect.TypeOf(err), err)
+// 	DumpError(errors.Unwrap(err))
+// }

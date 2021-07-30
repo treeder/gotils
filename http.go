@@ -51,6 +51,7 @@ func ErrorHandler(h ErrorHandlerFunc) http.HandlerFunc {
 }
 
 func handleErr(w http.ResponseWriter, err error) {
+	// DumpError(err)
 	if errors.Is(err, ErrNotFound) {
 		WriteError(w, http.StatusNotFound, err)
 		return
@@ -61,12 +62,13 @@ func handleErr(w http.ResponseWriter, err error) {
 	}
 	var ue UserError
 	if errors.As(err, &ue) {
+		// fmt.Println("user error")
 		WriteError(w, http.StatusBadRequest, errors.New(ue.UserError()))
 		return
 	}
 	var he HTTPError
 	if errors.As(err, &he) {
-		fmt.Println("http error", he.Code())
+		// fmt.Println("http error", he.Code())
 		WriteError(w, he.Code(), he)
 		return
 	}
