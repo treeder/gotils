@@ -173,6 +173,22 @@ func With(ctx context.Context, key string, value interface{}) context.Context {
 	return ctx
 }
 
+func CopyCtxWithoutCancel(ctx context.Context) context.Context {
+	ret := context.Background()
+	fields, ok := ctx.Value(errContext).(map[string]interface{})
+	if !ok {
+		return ret
+	}
+	// clone it
+	fields2 := map[string]interface{}{}
+	for k, v := range fields {
+		fields2[k] = v
+	}
+	fields = fields2
+	ret = context.WithValue(ret, errContext, fields)
+	return ret
+}
+
 // NewLine returns an object that deals with logging
 func NewLine(ctx context.Context) Leveler {
 	return &line{ctx: ctx}
