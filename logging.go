@@ -433,5 +433,6 @@ func ErrString(err error) string {
 }
 
 func shouldSkip(s string) bool {
-	return strings.HasPrefix(s, "github.com/treeder/gotils")
+	// fmt.Printf("should skip? %v\n", s)
+	return strings.HasPrefix(strings.TrimSpace(s), "github.com/treeder/gotils")
 }

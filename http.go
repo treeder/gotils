@@ -2,6 +2,7 @@ package gotils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -188,18 +189,18 @@ func GetString(url string) (string, error) {
 func GetJSON(url string, t interface{}) error {
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return C(context.Background()).Error(err)
 	}
 	defer resp.Body.Close()
 
 	err = checkError(resp)
 	if err != nil {
-		return err
+		return C(context.Background()).Error(err)
 	}
 
 	err = ParseJSONReader(resp.Body, t)
 	if err != nil {
-		return fmt.Errorf("couldn't parse response: %v", err)
+		return C(context.Background()).Errorf("couldn't parse response: %v", err)
 	}
 	return nil
 }
