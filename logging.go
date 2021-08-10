@@ -338,11 +338,11 @@ func Error(ctx context.Context, e2 error) FullStacked {
 	return &stackedWrapper{
 		err:    e2,
 		fields: fields,
-		stack:  takeStacktrace(),
+		stack:  TakeStacktrace(),
 	}
 }
 
-func takeStacktrace() []runtime.Frame {
+func TakeStacktrace() []runtime.Frame {
 	pc := make([]uintptr, 25)
 	_ = runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc)
@@ -366,7 +366,7 @@ func Printf(ctx context.Context, format string, a ...interface{}) {
 			if errors.As(y, &e) {
 				// This was already called before, so we don't want to get a new stack trace or change the existing fields
 				// Make a new wrapper so we don't lose any other errors in the chain
-				fmt.Print(str(msg, e.fields, e.stack))
+				fmt.Print(str("error", msg, e.fields, e.stack))
 				return
 			}
 		}
@@ -375,47 +375,55 @@ func Printf(ctx context.Context, format string, a ...interface{}) {
 	if !ok {
 		fields = map[string]interface{}{}
 	}
-	fmt.Print(str(msg, fields, nil))
+	fmt.Print(str("info", msg, fields, nil))
 }
 
-func str(msg string, fields map[string]interface{}, stack []runtime.Frame) string {
-	buffer := bytes.Buffer{}
-	// todo: log lib should add severity, ie: ERROR
-	buffer.WriteString(msg)
-	if msg[len(msg)-1] != '\n' {
-		buffer.WriteRune('\n')
-	}
-
+func str(severity, message string, fields map[string]interface{}, stack []runtime.Frame) string {
+	var msg strings.Builder
+	msg.WriteString(strings.ToUpper(severity))
+	msg.WriteString("\t")
+	msg.WriteString(message)
 	if len(fields) > 0 {
-		buffer.WriteRune('\t')
+		msg.WriteString("\n\t")
 		i := 0
 		for k, v := range fields {
-			buffer.WriteString(fmt.Sprintf("%v: %v", k, v))
+			msg.WriteString(fmt.Sprintf("%v: %v", k, v))
 			if i < len(fields)-1 {
-				buffer.WriteString("\n\t")
+				msg.WriteString("\n\t")
 			}
 			i++
 		}
-		buffer.WriteRune('\n')
+		msg.WriteRune('\n')
 	}
-	if stack != nil {
-		buffer.WriteRune('\n')
-		buffer.WriteString("goroutine 1 [running]:\n")
-		for i, frame := range stack {
-			if i != 0 {
-				buffer.WriteRune('\n')
-			}
-			buffer.WriteString(frame.Function)
-			buffer.WriteRune('(')
-			buffer.WriteString(fmt.Sprintf("%v", frame.PC))
-			buffer.WriteRune(')')
+	msg.WriteString("\n")
+	if len(stack) > 0 {
+		msg.WriteString(StackToString(stack))
+	}
+	return msg.String()
+}
+
+// PrintMFS msg, fields and stack
+func PrintMFS(ctx context.Context, severity, msg string, fields map[string]interface{}, stack []runtime.Frame) {
+	fmt.Print(str(severity, msg, fields, nil))
+}
+
+func StackToString(frames []runtime.Frame) string {
+	buffer := bytes.Buffer{}
+	buffer.WriteString("goroutine 1 [running]:\n")
+	for i, frame := range frames {
+		if i != 0 {
 			buffer.WriteRune('\n')
-			buffer.WriteRune('\t')
-			buffer.WriteString(frame.File)
-			buffer.WriteRune(':')
-			buffer.WriteString(strconv.Itoa(frame.Line))
-			i++
 		}
+		buffer.WriteString(frame.Function)
+		buffer.WriteRune('(')
+		buffer.WriteString(fmt.Sprintf("%v", frame.PC))
+		buffer.WriteRune(')')
+		buffer.WriteRune('\n')
+		buffer.WriteRune('\t')
+		buffer.WriteString(frame.File)
+		buffer.WriteRune(':')
+		buffer.WriteString(strconv.Itoa(frame.Line))
+		i++
 	}
 	return buffer.String()
 }
@@ -428,7 +436,7 @@ func ErrString(err error) string {
 		return err.Error()
 	}
 
-	return str(err.Error(), e.Fields(), e.Stack())
+	return str("error", err.Error(), e.Fields(), e.Stack())
 
 }
 
