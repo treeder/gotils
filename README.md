@@ -88,3 +88,4 @@ err := gotils.PostJSON(url, v)
 // And some response handling
 gotils.WriteObject(w, 200, v) // also WriteMessage, WriteError
 ```
+
