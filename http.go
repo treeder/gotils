@@ -61,6 +61,10 @@ func handleErr(w http.ResponseWriter, err error) {
 		// send to user defined output
 		pf.Printf("%v", err)
 	}
+	if loggable != nil {
+		// send to user defined output
+		loggable.Logf(context.Background(), "error", "%v", err)
+	}
 	var ue UserError
 	if errors.As(err, &ue) {
 		// fmt.Println("user error")
