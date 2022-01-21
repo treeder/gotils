@@ -213,12 +213,49 @@ func GetJSON(url string, t interface{}) error {
 func PostJSON(url string, tin, tout interface{}) error {
 	jsonValue, err := json.Marshal(tin)
 	if err != nil {
-		return err
+		return C(context.Background()).Error(err)
 	}
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
 	if err != nil {
-		return err
+		return C(context.Background()).Error(err)
 	}
+	defer resp.Body.Close()
+
+	err = checkError(resp)
+	if err != nil {
+		return C(context.Background()).Error(err)
+	}
+	if tout != nil {
+		err = ParseJSONReader(resp.Body, tout)
+		if err != nil {
+			return fmt.Errorf("couldn't parse response: %v", err)
+		}
+	}
+	return nil
+}
+
+// PatchJSON performs a PATCH request with tin as the body then parses the response into tout. tin and tout can be the same object.
+func PatchJSON(url string, tin, tout interface{}) error {
+
+	jsonValue, err := json.Marshal(tin)
+	if err != nil {
+		return C(context.Background()).Error(err)
+	}
+
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		return C(context.Background()).Error(err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return C(context.Background()).Error(err)
+	}
+	// resp, err := http.Patch(url, "application/json", bytes.NewBuffer(jsonValue))
+	// if err != nil {
+	// 	return err
+	// }
 	defer resp.Body.Close()
 
 	err = checkError(resp)
