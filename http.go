@@ -209,6 +209,48 @@ func GetJSON(url string, t interface{}) error {
 	return nil
 }
 
+type RequestOptions struct {
+	Headers map[string]string
+}
+
+// GetJSON performs a get request and then parses the result into t
+func GetJSONOpts(url string, t interface{}, opts *RequestOptions) error {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return C(context.Background()).Error(err)
+	}
+	// req.Header = http.Header{
+	// "Host":          []string{"www.host.com"},
+	// "Content-Type":  []string{"application/json"},
+	// "Authorization": []string{"Bearer Token"},
+	// }
+	if opts == nil {
+		opts = &RequestOptions{
+			Headers: map[string]string{},
+		}
+	}
+	for k, v := range opts.Headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return C(context.Background()).Error(err)
+	}
+	defer resp.Body.Close()
+
+	err = checkError(resp)
+	if err != nil {
+		return C(context.Background()).Error(err)
+	}
+
+	err = ParseJSONReader(resp.Body, t)
+	if err != nil {
+		return C(context.Background()).Errorf("couldn't parse response: %v", err)
+	}
+	return nil
+}
+
 // PostJSON performs a post request with tin as the body then parses the response into tout. tin and tout can be the same object.
 func PostJSON(url string, tin, tout interface{}) error {
 	jsonValue, err := json.Marshal(tin)
@@ -230,6 +272,44 @@ func PostJSON(url string, tin, tout interface{}) error {
 		if err != nil {
 			return fmt.Errorf("couldn't parse response: %v", err)
 		}
+	}
+	return nil
+}
+
+// GetJSON performs a get request and then parses the result into t
+func PostJSONOpts(url string, tin, tout interface{}, opts *RequestOptions) error {
+	jsonValue, err := json.Marshal(tin)
+	if err != nil {
+		return C(context.Background()).Error(err)
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return C(context.Background()).Error(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if opts == nil {
+		opts = &RequestOptions{
+			Headers: map[string]string{},
+		}
+	}
+	for k, v := range opts.Headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return C(context.Background()).Error(err)
+	}
+	defer resp.Body.Close()
+
+	err = checkError(resp)
+	if err != nil {
+		return C(context.Background()).Error(err)
+	}
+
+	err = ParseJSONReader(resp.Body, tout)
+	if err != nil {
+		return C(context.Background()).Errorf("couldn't parse response: %v", err)
 	}
 	return nil
 }
