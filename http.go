@@ -191,6 +191,13 @@ func GetString(url string) (string, error) {
 
 // GetJSON performs a get request and then parses the result into t
 func GetJSON(url string, t interface{}) error {
+	if strings.HasPrefix(url, "ipfs://") {
+		path := strings.TrimPrefix(url, "ipfs://")
+		// url = fmt.Sprintf("https://cloudflare-ipfs.com/ipfs/%v", path)
+		// cloudflare giving me captcha response!
+		url = fmt.Sprintf("https://ipfs.io/ipfs/%v", path)
+		fmt.Println("URL:", url)
+	}
 	resp, err := http.Get(url)
 	if err != nil {
 		return C(context.Background()).Error(err)
