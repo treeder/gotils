@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Port will check env var for PORT (common on cloud services) and use that, otherwise
