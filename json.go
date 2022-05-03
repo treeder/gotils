@@ -1,5 +1,11 @@
 package gotils
 
+import (
+	"encoding/json"
+	"io"
+	"os"
+)
+
 func ParseJSONBytes(b []byte, t interface{}) error {
 	return json.Unmarshal(b, t)
 }
@@ -25,7 +31,7 @@ func ToJSON(v interface{}) (string, error) {
 func ParseJSONFile(filename string, t interface{}) error {
 	f, err := os.Open(filename)
 	if err != nil {
-	   return err
+		return err
 	}
 	return ParseJSONReader(f, t)
 }
