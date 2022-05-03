@@ -143,27 +143,6 @@ func ParseJSON(w http.ResponseWriter, r *http.Request, t interface{}) error {
 	return nil
 }
 
-func ParseJSONBytes(b []byte, t interface{}) error {
-	return json.Unmarshal(b, t)
-}
-
-func ParseJSONReader(r io.Reader, t interface{}) error {
-	decoder := json.NewDecoder(r)
-	err := decoder.Decode(t)
-	return err
-}
-
-func BytesToJSON(bs []byte) (string, error) {
-	return ToJSON(string(bs))
-}
-
-func ToJSON(v interface{}) (string, error) {
-	jsonValue, err := json.Marshal(v)
-	if err != nil {
-		return "", err
-	}
-	return string(jsonValue), nil
-}
 
 func GetBytes(url string) ([]byte, error) {
 	resp, err := http.Get(url)

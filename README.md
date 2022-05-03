@@ -2,6 +2,8 @@
 
 This is where I experiment with Go stuff.
 
+[Documentation](https://pkg.go.dev/github.com/treeder/gotils/v2)
+
 ## Update Go Version
 
 ```sh
