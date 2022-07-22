@@ -239,6 +239,10 @@ func GetJSONOpts(url string, t interface{}, opts *RequestOptions) error {
 	return nil
 }
 
+func GetJSON2(ctx context.Context, url string, tout any, opts *RequestOptions) error {
+	return do(ctx, url, "GET", nil, tout, opts)
+}
+
 // PostJSON performs a post request with tin as the body then parses the response into tout. tin and tout can be the same object.
 func PostJSON(url string, tin, tout interface{}) error {
 	jsonValue, err := json.Marshal(tin)
