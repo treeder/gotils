@@ -9,7 +9,9 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
+	urlp "net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -143,7 +145,6 @@ func ParseJSON(w http.ResponseWriter, r *http.Request, t interface{}) error {
 	return nil
 }
 
-
 func GetBytes(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -184,7 +185,7 @@ func GetJSON(url string, t interface{}) error {
 	}
 	defer resp.Body.Close()
 
-	err = checkError(resp)
+	err = CheckError(resp)
 	if err != nil {
 		return C(context.Background()).Error(err)
 	}
@@ -226,7 +227,7 @@ func GetJSONOpts(url string, t interface{}, opts *RequestOptions) error {
 	}
 	defer resp.Body.Close()
 
-	err = checkError(resp)
+	err = CheckError(resp)
 	if err != nil {
 		return C(context.Background()).Error(err)
 	}
@@ -250,7 +251,7 @@ func PostJSON(url string, tin, tout interface{}) error {
 	}
 	defer resp.Body.Close()
 
-	err = checkError(resp)
+	err = CheckError(resp)
 	if err != nil {
 		return C(context.Background()).Error(err)
 	}
@@ -289,7 +290,7 @@ func PostJSONOpts(url string, tin, tout interface{}, opts *RequestOptions) error
 	}
 	defer resp.Body.Close()
 
-	err = checkError(resp)
+	err = CheckError(resp)
 	if err != nil {
 		return C(context.Background()).Error(err)
 	}
@@ -299,6 +300,36 @@ func PostJSONOpts(url string, tin, tout interface{}, opts *RequestOptions) error
 		return C(context.Background()).Errorf("couldn't parse response: %v", err)
 	}
 	return nil
+}
+
+// PostJSON2 performs a post request with tin as the body then parses the response into tout. tin and tout can be the same object.
+func PostJSON2(ctx context.Context, url string, tin, tout any, opts *RequestOptions) error {
+	jsonValue, err := json.Marshal(tin)
+	if err != nil {
+		return err
+	}
+	body := bytes.NewBuffer(jsonValue)
+	return do(ctx, url, "POST", body, tout, opts)
+}
+
+func PostMultipartForm(ctx context.Context, url string, formValues map[string]string, tout any, opts *RequestOptions) error {
+	// body := strings.NewReader(form.Encode())
+	b := &bytes.Buffer{}
+	mp := multipart.NewWriter(b)
+	form := urlp.Values{}
+	for k, v := range formValues {
+		err := mp.WriteField(k, v)
+		if err != nil {
+			return err
+		}
+		form.Add(k, v)
+	}
+	mp.Close()
+
+	bod := bytes.NewReader(b.Bytes())
+	// bod := strings.NewReader(form.Encode())
+	opts.Headers["Content-Type"] = mp.FormDataContentType()
+	return do(ctx, url, "POST", bod, tout, opts)
 }
 
 // PatchJSON performs a PATCH request with tin as the body then parses the response into tout. tin and tout can be the same object.
@@ -325,7 +356,7 @@ func PatchJSON(url string, tin, tout interface{}) error {
 	// }
 	defer resp.Body.Close()
 
-	err = checkError(resp)
+	err = CheckError(resp)
 	if err != nil {
 		return err
 	}
@@ -338,7 +369,37 @@ func PatchJSON(url string, tin, tout interface{}) error {
 	return nil
 }
 
-func checkError(resp *http.Response) error {
+func do(ctx context.Context, url string, method string, body io.Reader, tout any, opts *RequestOptions) error {
+	client := http.DefaultClient
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return C(ctx).Errorf("NewRequest: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	for k, v := range opts.Headers {
+		req.Header.Set(k, v)
+	}
+	resp, err := client.Do(req)
+	// resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	err = CheckError(resp)
+	if err != nil {
+		return err
+	}
+	if tout != nil {
+		err = ParseJSONReader(resp.Body, tout)
+		if err != nil {
+			return C(ctx).Errorf("couldn't parse response: %w", err)
+		}
+	}
+	return nil
+}
+
+func CheckError(resp *http.Response) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
