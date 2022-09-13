@@ -2,7 +2,7 @@
 
 This is where I experiment with Go stuff.
 
-[Documentation](https://pkg.go.dev/github.com/treeder/gotils/v2)
+[![Go Reference](https://pkg.go.dev/badge/github.com/treeder/gotils/v2.svg)](https://pkg.go.dev/github.com/treeder/gotils/v2)
 
 ## Update Go Version
 
