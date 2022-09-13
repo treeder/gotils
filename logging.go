@@ -444,3 +444,15 @@ func shouldSkip(s string) bool {
 	// fmt.Printf("should skip? %v\n", s)
 	return strings.HasPrefix(strings.TrimSpace(s), "github.com/treeder/gotils")
 }
+
+func logIfErr(ctx context.Context, f func() error) {
+	err := f()
+	if err != nil {
+		gotils.L(ctx).Error().Println(err)
+	}
+}
+
+// GoLog is intended for go routines where you want to be sure any errors in your go routines get logged
+func GoLog(ctx context.Context, f func() error) {
+	go logIfErr(ctx, f)
+}
