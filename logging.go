@@ -448,7 +448,7 @@ func shouldSkip(s string) bool {
 func logIfErr(ctx context.Context, f func() error) {
 	err := f()
 	if err != nil {
-		gotils.L(ctx).Error().Println(err)
+		L(ctx).Error().Println(err)
 	}
 }
 
