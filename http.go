@@ -374,6 +374,11 @@ func PatchJSON(url string, tin, tout interface{}) error {
 }
 
 func do(ctx context.Context, url string, method string, body io.Reader, tout any, opts *RequestOptions) error {
+	if opts == nil {
+		opts = &RequestOptions{
+			Headers: map[string]string{},
+		}
+	}
 	client := http.DefaultClient
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
