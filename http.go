@@ -108,33 +108,35 @@ func ObjectHandler(h ObjectHandlerFunc) http.HandlerFunc {
 	}
 }
 
-func WriteError(w http.ResponseWriter, code int, err error) {
+func WriteError(w http.ResponseWriter, code int, err error) error {
 	switch err.(type) {
 	case *DetailedError:
-		WriteObject(w, code, map[string]interface{}{"error": err})
+		return WriteObject(w, code, map[string]interface{}{"error": err})
 	default:
-		WriteObject(w, code, map[string]interface{}{"error": map[string]interface{}{"message": err.Error(), "status": code}})
+		return WriteObject(w, code, map[string]interface{}{"error": map[string]interface{}{"message": err.Error(), "status": code}})
 	}
 }
 
-func WriteMessage(w http.ResponseWriter, code int, msg string) {
-	WriteObject(w, 200, map[string]interface{}{
+func WriteMessage(w http.ResponseWriter, code int, msg string) error{
+	return WriteObject(w, 200, map[string]interface{}{
 		"message": msg,
 	})
 }
 
-func WriteObject(w http.ResponseWriter, code int, obj interface{}) {
+func WriteObject(w http.ResponseWriter, code int, obj interface{}) error {
 	jsonValue, err := json.Marshal(obj)
 	if err != nil {
-		log.Printf("ERROR: couldn't marshal JSON in WriteObject: %v", err)
-		return
+		log.Printf("ERROR: marshalling JSON in WriteObject: %v", err)
+		return err
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
 	_, err = w.Write([]byte(jsonValue))
 	if err != nil {
-		log.Printf("ERROR: couldn't write error response: %v", err)
+		log.Printf("ERROR: error writing response: %v", err)
+		return err
 	}
+	return nil
 }
 
 func ParseJSON(w http.ResponseWriter, r *http.Request, t interface{}) error {
