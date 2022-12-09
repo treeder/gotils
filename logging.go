@@ -453,6 +453,10 @@ func logIfErr(ctx context.Context, f func() error) {
 }
 
 // GoLog is intended for go routines where you want to be sure any errors in your go routines get logged
+// Use like this:
+// 	go gotils.GoLog(ctx, func() error {
+// 		return notify(gotils.CopyCtxWithoutCancel(ctx), thing, thing)
+// 	})
 func GoLog(ctx context.Context, f func() error) {
 	go logIfErr(ctx, f)
 }
