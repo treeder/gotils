@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/treeder/gotils/v2"
 )
@@ -21,8 +22,30 @@ func main() {
 	err = gotils.C(ctx).Errorf("doh: %v", err)
 	fmt.Println(gotils.ErrString(err))
 
-	err = gotils.C(ctx).SetCode(http.StatusBadRequest).Internal(err).Errorf("bad input: %w", err)
+	err = gotils.C(ctx).SetCode(http.StatusBadRequest).Message("this is for the user: bad input yo!").Errorf("bad input: %w", err)
 	fmt.Println(gotils.ErrString(err))
+	DumpError(err)
+
+	// err = gotils.C(ctx).SetCode(http.StatusBadRequest). // Errorf("bad input: %w", err)
+	// fmt.Println(gotils.ErrString(err))
+	var coded gotils.Coded
+	if errors.As(err, &coded) {
+		fmt.Println("CODE:", coded.Code())
+	}
+	var um gotils.UserMessage
+	if errors.As(err, &um) {
+		fmt.Println("USER MESSAGE:", um.Message())
+		fmt.Println("USER MESSAGE as ERR:", um.Error())
+	}
+
+}
+
+func DumpError(err error) {
+	if err == nil {
+		return
+	}
+	fmt.Println(reflect.TypeOf(err), err)
+	DumpError(errors.Unwrap(err))
 }
 
 // func main() {

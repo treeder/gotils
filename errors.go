@@ -10,16 +10,17 @@ var ErrNotFound = NewHTTPError("not found", 404)
 // UserError let's you set a separate error message intended for the end user.
 // See UserErrorf for creating one.
 // eg:
-//   var e core.UserError
-//   if errors.As(err, &e) {
-// 	   sendToUser(e.UserError())
-//     if (e.Unwrap() != nil){
-//       log(e)
-//     }
-// 	 } else {
-//     sendGenericInternalErrorToUser()
-// 	   log(e)
-//   }
+//
+//	  var e core.UserError
+//	  if errors.As(err, &e) {
+//		   sendToUser(e.UserError())
+//	    if (e.Unwrap() != nil){
+//	      log(e)
+//	    }
+//		 } else {
+//	    sendGenericInternalErrorToUser()
+//		   log(e)
+//	  }
 type UserError interface {
 	error
 	UserError() string
@@ -63,6 +64,35 @@ type DetailedError struct {
 
 func (e *DetailedError) Error() string {
 	return e.Message
+}
+
+// Making HTTPError slightly more generic
+type Coded interface {
+	error
+	Code() int
+}
+
+type coded struct {
+	err  error // wrapped
+	code int
+}
+
+func (c *coded) Error() string {
+	return fmt.Sprintf("code %v", c.code)
+}
+func (c *coded) Code() int {
+	return c.code
+}
+
+func (c *coded) Unwrap() error {
+	return c.err
+}
+func (c *coded) Wrap(err error) {
+	c.err = err
+}
+
+type InternalError interface {
+	Internal() error
 }
 
 // HTTPError allows you to add a status code

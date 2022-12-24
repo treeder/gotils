@@ -40,10 +40,13 @@ type Wrapperr interface {
 	// wraps the error that's passed in
 	Error(err error) error
 	// Internal error that shouldn't be displayed to the user
-	Internal(err error) Wrapperr
+	SetInternal(err error) Wrapperr
+	// Internal() error
 	// Code lets us set a numeric code, useful for http errors
 	SetCode(code int) Wrapperr
-	Code() int
+	// Code() int
+
+	Message(msg string) Wrapperr
 }
 
 // Leveler methods to set levels on loggers
@@ -246,13 +249,23 @@ func L(ctx context.Context) Leveler {
 
 // C use this to get an object that deals with errors.
 func C(ctx context.Context) Wrapperr {
-	return &wrapperr{ctx: ctx}
+	return newWrapperr(ctx)
+}
+
+type CanWrap interface {
+	error
+	Wrap(err error)
+}
+
+func newWrapperr(ctx context.Context) *wrapperr {
+	return &wrapperr{ctx: ctx, errs: []CanWrap{}}
 }
 
 type wrapperr struct {
 	ctx           context.Context
 	internalError error
-	code          int
+	// code int
+	errs []CanWrap
 }
 
 func (w *wrapperr) Errorf(format string, a ...interface{}) error {
@@ -260,27 +273,110 @@ func (w *wrapperr) Errorf(format string, a ...interface{}) error {
 		// wrap the internal one first
 		return &internalError{err: w.internalError, msg: fmt.Sprintf(format, a...)}
 	}
-	return Errorf(w.ctx, format, a...)
+	var e error
+	e = Errorf(w.ctx, format, a...)
+	if w.errs != nil {
+		s := e.Error()
+		for _, e2 := range w.errs {
+			e2.Wrap(e) // this messes things up
+			// return &wrapError{msg: e.Error(), err: w.err}
+			e = e2
+		}
+		e = &wrapError{msg: s, err: e}
+	}
+	return e
+}
+func (w *wrapperr) Error(err error) error {
+	var e error
+	e = Error(w.ctx, fmt.Errorf("%w", err))
+	if w.errs != nil {
+		s := e.Error()
+		for _, e2 := range w.errs {
+			e2.Wrap(e) // this messes things up
+			// return &wrapError{msg: e.Error(), err: w.err}
+			e = e2
+		}
+		e = &wrapError{msg: s, err: e}
+	}
+	return e
 }
 func (w *wrapperr) Printf(format string, a ...interface{}) {
 	Printf(w.ctx, format, a...)
 }
-func (w *wrapperr) Error(err error) error {
-	return Error(w.ctx, err)
-}
-func (w *wrapperr) Internal(err error) Wrapperr {
+
+func (w *wrapperr) SetInternal(err error) Wrapperr {
 	w.internalError = Error(w.ctx, err) // wrap it and stack it
 	return w
 }
 
 func (w *wrapperr) SetCode(code int) Wrapperr {
-	w.code = code
+	w.errs = append(w.errs, &coded{code: code})
 	return w
 }
 
-func (w *wrapperr) Code() int {
-	return w.code
+func (w *wrapperr) Message(msg string) Wrapperr {
+	w.errs = append(w.errs, &userMessage{msg: msg})
+	return w
 }
+
+// wrapError straight from fmt.Errorf
+type wrapError struct {
+	msg string
+	err error
+}
+
+func (e *wrapError) Error() string {
+	return e.msg
+}
+
+func (e *wrapError) Unwrap() error {
+	return e.err
+}
+
+func (e *wrapError) Wrap(err error) {
+	e.err = err
+}
+
+type UserMessage interface {
+	error
+	Message() string
+}
+
+// wrapError straight from fmt.Errorf
+type userMessage struct {
+	msg string
+	err error
+}
+
+func (e *userMessage) Message() string {
+	return e.msg
+}
+
+func (e *userMessage) Error() string {
+	return e.msg
+}
+
+func (e *userMessage) Unwrap() error {
+	return e.err
+}
+
+func (e *userMessage) Wrap(err error) {
+	e.err = err
+}
+
+// // wrapped is for wrapping one error with another
+// type wrapped struct {
+// 	err1 error
+// 	err2 error
+// }
+
+// func (e *wrapped) Error() string {
+// 	return e.err1.Error()
+// }
+
+// func (e *wrapped) Unwrap() error {
+// 	return e.err2
+// }
 
 // Fields returns all the fields added via With(...)
 func Fields(ctx context.Context) map[string]interface{} {

@@ -68,20 +68,25 @@ func handleErr(w http.ResponseWriter, err error) {
 		// send to user defined output
 		loggable.Logf(context.Background(), "error", "%v", err)
 	}
+	code := http.StatusInternalServerError
 	var ue UserError
 	if errors.As(err, &ue) {
-		// fmt.Println("user error")
-		WriteError(w, http.StatusBadRequest, errors.New(ue.UserError()))
-		return
+		code = http.StatusBadRequest
+		err = errors.New(ue.UserError())
 	}
 	var he HTTPError
 	if errors.As(err, &he) {
-		// fmt.Println("http error", he.Code())
-		WriteError(w, he.Code(), he)
-		return
+		code = he.Code()
 	}
-	// default:
-	WriteError(w, http.StatusInternalServerError, err)
+	var coded Coded
+	if errors.As(err, &coded) {
+		code = coded.Code()
+	}
+	var um UserMessage
+	if errors.As(err, &um) {
+		err = um // ensure we use the proper message
+	}
+	WriteError(w, code, err)
 }
 
 type ObjectNamer interface {
@@ -117,7 +122,7 @@ func WriteError(w http.ResponseWriter, code int, err error) error {
 	}
 }
 
-func WriteMessage(w http.ResponseWriter, code int, msg string) error{
+func WriteMessage(w http.ResponseWriter, code int, msg string) error {
 	return WriteObject(w, 200, map[string]interface{}{
 		"message": msg,
 	})
