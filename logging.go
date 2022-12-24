@@ -41,6 +41,9 @@ type Wrapperr interface {
 	Error(err error) error
 	// Internal error that shouldn't be displayed to the user
 	Internal(err error) Wrapperr
+	// Code lets us set a numeric code, useful for http errors
+	SetCode(code int) Wrapperr
+	Code() int
 }
 
 // Leveler methods to set levels on loggers
@@ -249,6 +252,7 @@ func C(ctx context.Context) Wrapperr {
 type wrapperr struct {
 	ctx           context.Context
 	internalError error
+	code          int
 }
 
 func (w *wrapperr) Errorf(format string, a ...interface{}) error {
@@ -267,6 +271,15 @@ func (w *wrapperr) Error(err error) error {
 func (w *wrapperr) Internal(err error) Wrapperr {
 	w.internalError = Error(w.ctx, err) // wrap it and stack it
 	return w
+}
+
+func (w *wrapperr) SetCode(code int) Wrapperr {
+	w.code = code
+	return w
+}
+
+func (w *wrapperr) Code() int {
+	return w.code
 }
 
 // Fields returns all the fields added via With(...)
@@ -454,9 +467,10 @@ func logIfErr(ctx context.Context, f func() error) {
 
 // GoLog is intended for go routines where you want to be sure any errors in your go routines get logged
 // Use like this:
-// 	go gotils.GoLog(ctx, func() error {
-// 		return notify(gotils.CopyCtxWithoutCancel(ctx), thing, thing)
-// 	})
+//
+//	go gotils.GoLog(ctx, func() error {
+//		return notify(gotils.CopyCtxWithoutCancel(ctx), thing, thing)
+//	})
 func GoLog(ctx context.Context, f func() error) {
 	go logIfErr(ctx, f)
 }

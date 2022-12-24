@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/treeder/gotils/v2"
 )
@@ -18,7 +19,10 @@ func main() {
 	// fmt.Println(gotils.ErrString(err))
 	// fmt.Println("fields:", gotils.Fields(ctx))
 	err = gotils.C(ctx).Errorf("doh: %v", err)
-	fmt.Print(gotils.ErrString(err))
+	fmt.Println(gotils.ErrString(err))
+
+	err = gotils.C(ctx).SetCode(http.StatusBadRequest).Internal(err).Errorf("bad input: %w", err)
+	fmt.Println(gotils.ErrString(err))
 }
 
 // func main() {
