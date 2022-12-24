@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -159,7 +158,7 @@ func GetBytes(url string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if err != nil {
 			return nil, err
@@ -417,7 +416,7 @@ func do(ctx context.Context, url string, method string, body io.Reader, tout any
 
 func CheckError(resp *http.Response) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}
@@ -446,7 +445,7 @@ func DownloadFile(filepath string, url string) (*os.File, error) {
 	}
 	defer resp.Body.Close()
 
-	out, err := ioutil.TempFile("", filepath)
+	out, err := os.CreateTemp("", filepath)
 	if err != nil {
 		return nil, err
 	}
