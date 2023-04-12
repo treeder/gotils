@@ -4,10 +4,10 @@ This is where I experiment with Go stuff.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/treeder/gotils/v2.svg)](https://pkg.go.dev/github.com/treeder/gotils/v2)
 
-## Update Go Version
+## Installing
 
-```sh
-curl -LSs https://raw.githubusercontent.com/treeder/gotils/master/update.sh | bash
+```
+import "github.com/treeder/gotils/v2"
 ```
 
 ## Logging
@@ -91,3 +91,11 @@ err := gotils.PostJSON(url, v)
 gotils.WriteObject(w, 200, v) // also WriteMessage, WriteError
 ```
 
+
+## Update your installed Go Version
+
+This is just a random utility to upgrade your Go version:
+
+```sh
+curl -LSs https://raw.githubusercontent.com/treeder/gotils/master/update.sh | bash
+```
