@@ -57,6 +57,12 @@ type Leveler interface {
 	Info() Printer
 	// Error returns a new logger with ERROR severity
 	Error() Printer
+	//Error returns a new logger with CRITICAL severity, Critical events cause more severe problems or outages.
+	Critical() Printer
+	//Error returns a new logger with ALERT severity, A person must take an action immediately.
+	Alert() Printer
+	//Error returns a new logger with EMERGENCY severity, One or more systems are unusable.
+	Emergency() Printer
 }
 
 // // Line is the main interface returned from most functions
@@ -221,6 +227,21 @@ func (l *line) Info() Printer {
 func (l *line) Error() Printer {
 	// l2 := l.clone()
 	l.sev = "error"
+	return l
+}
+
+func (l *line) Critical() Printer {
+	l.sev = "critical"
+	return l
+}
+
+func (l *line) Alert() Printer {
+	l.sev = "alert"
+	return l
+}
+
+func (l *line) Emergency() Printer {
+	l.sev = "emergency"
 	return l
 }
 
