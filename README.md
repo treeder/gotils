@@ -91,6 +91,18 @@ err := gotils.PostJSON(url, v)
 gotils.WriteObject(w, 200, v) // also WriteMessage, WriteError
 ```
 
+## HTTP Handler utils
+
+Useful for creating APIs:
+
+```go
+input := &MyInput{}
+err := gotils.ParseJSON(w, r, input)
+if err != nil {
+    return gotils.C(ctx).SetCode(http.StatusBadRequest).Errorf("invalid request input: %w", err)
+}
+```
+
 
 ## Update your installed Go Version
 
