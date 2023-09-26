@@ -379,7 +379,13 @@ func PatchJSON(url string, tin, tout interface{}) error {
 	return nil
 }
 
+
 func do(ctx context.Context, url string, method string, body io.Reader, tout any, opts *RequestOptions) error {
+	return Do(ctx, url, method, body, tout, opts)
+}
+
+// generic function to do any http method
+func Do(ctx context.Context, url string, method string, body io.Reader, tout any, opts *RequestOptions) error {
 	if opts == nil {
 		opts = &RequestOptions{
 			Headers: map[string]string{},
