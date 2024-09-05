@@ -113,16 +113,18 @@ func ObjectHandler(h ObjectHandlerFunc) http.HandlerFunc {
 }
 
 func WriteError(w http.ResponseWriter, code int, err error) error {
-	switch err.(type) {
+	switch err := err.(type) {
 	case *DetailedError:
 		return WriteObject(w, code, map[string]interface{}{"error": err})
+	case ActionError:
+		return WriteObject(w, code, map[string]interface{}{"error": map[string]any{"message": err.Error(), "status": code, "action": err.Action()}})
 	default:
-		return WriteObject(w, code, map[string]interface{}{"error": map[string]interface{}{"message": err.Error(), "status": code}})
+		return WriteObject(w, code, map[string]interface{}{"error": map[string]any{"message": err.Error(), "status": code}})
 	}
 }
 
 func WriteMessage(w http.ResponseWriter, code int, msg string) error {
-	return WriteObject(w, 200, map[string]interface{}{
+	return WriteObject(w, 200, map[string]any{
 		"message": msg,
 	})
 }
@@ -378,7 +380,6 @@ func PatchJSON(url string, tin, tout interface{}) error {
 	}
 	return nil
 }
-
 
 func do(ctx context.Context, url string, method string, body io.Reader, tout any, opts *RequestOptions) error {
 	return Do(ctx, url, method, body, tout, opts)

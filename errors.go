@@ -48,6 +48,7 @@ func (ue *userError) Unwrap() error {
 // Actions are useful to show an error and give user some action they can perform to deal with it.
 // Good use case is a Material 3 snackbar with an action button on it.
 type ActionError interface {
+	error
 	Action() *Action
 }
 
@@ -56,10 +57,6 @@ type Action struct {
 	Href  string `json:"href"`
 	// todo: instead of a link, some callback function or something that can be used in JS.
 }
-
-// func uf(format string, a ...interface{}) UserError {
-// 	return &userError{userMsg: fmt.Sprintf(format, a...)}
-// }
 
 // UserErrorf returns a new UserError
 // rootErr can be nil which means this will ONLY be a UserError, not an internal error also,
